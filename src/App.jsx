@@ -1,5 +1,22 @@
 import { useEffect, useState } from 'react'
 import countryService from './services/countries'
+import weatherService from './services/weather'
+
+const Weather = ({country}) => {
+  const latlng = country.latlng
+  weatherService.getWeather(latlng[0],latlng[1])
+  .then(weather => { 
+    const imgCode = weather.weather.icon
+    return(
+      <div>
+        <h2>Weather in {country.capital}</h2>
+        <p>Temperature: {weather.main.temp} Celcius</p>
+        <img src={`https://openweathermap.org/img/wn/${imgCode}.png`}
+          alt="WeatherIcon" />
+        <p>Wind: {weather.wind.speed} m/s</p>
+      </div>
+    )})
+}
 
 const SearchBar = ({filter, changeHandler}) => {
   return(
@@ -15,18 +32,19 @@ const SearchBar = ({filter, changeHandler}) => {
 
 const JustOneCountry = ({country}) => {
   const langs = Object.values(country.languages)
-  return (
-    <>
-      <h1>{country.name.common}</h1>
-      <p>Capital: {country.capital} <br />
-      Area: {country.area} </p>
-      <h2>Languages</h2>
-      <ul>
-        {langs.map(lan=><li key={lan}>{lan}</li>)}
-      </ul>
-      <img src={country.flags.png} alt="Flag" />
-    </>
-  )
+    return (
+      <>
+        <h1>{country.name.common}</h1>
+        <p>Capital: {country.capital} <br />
+        Area: {country.area} </p>
+        <h2>Languages</h2>
+        <ul>
+          {langs.map(lan=><li key={lan}>{lan}</li>)}
+        </ul>
+        <img src={country.flags.png} alt="Flag" />
+        <Weather country={country} />
+      </>
+    )
 }
 
 const ListOfCountries = ({list,buttonHandler}) =>{
@@ -55,6 +73,7 @@ const ListOfCountries = ({list,buttonHandler}) =>{
 const App = () => {
   const [allCountries, setAllCountries] = useState([])
   const [newFilter, setNewFilter] = useState('')
+  const [newWeather, setNewWeather] = useState(null)
 
   //Gets all countries and stores them in allCountries
   const getListFromServer = () => {
@@ -81,7 +100,7 @@ const App = () => {
   }
 
   //Handle for the show button
-  const handleShowPress = (countryName) => {
+  const handleShowCountry = (countryName) => {
     setNewFilter(countryName)
   }
 
@@ -91,7 +110,7 @@ const App = () => {
   return (
     <>
       <SearchBar filter={newFilter} changeHandler={handleFilterChange} />
-      <ListOfCountries list={getCountriesToShow()} buttonHandler={handleShowPress}/>
+      <ListOfCountries list={getCountriesToShow()} buttonHandler={handleShowCountry}/>
     </>
   )
 }
