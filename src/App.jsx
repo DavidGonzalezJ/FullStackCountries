@@ -2,22 +2,23 @@ import { useEffect, useState } from 'react'
 import countryService from './services/countries'
 import weatherService from './services/weather'
 
-const Weather = ({country}) => {
-  const latlng = country.latlng
-  weatherService.getWeather(latlng[0],latlng[1])
-  .then(weather => { 
-    const imgCode = weather.weather.icon
-    return(
-      <div>
-        <h2>Weather in {country.capital}</h2>
-        <p>Temperature: {weather.main.temp} Celcius</p>
-        <img src={`https://openweathermap.org/img/wn/${imgCode}.png`}
-          alt="WeatherIcon" />
-        <p>Wind: {weather.wind.speed} m/s</p>
-      </div>
-    )})
+//Component that renders the weather
+const Weather = ({capital, weather}) => {
+  if(weather === null) return 
+  const iconCode = weather.weather[0].icon
+  const temp = weather.main.temp - 273.15
+  return(
+    <div>
+      <h2>Weather in {capital}</h2>
+      <p>Temperature: {Math.round(temp)}º Celcius</p>
+      <img src={`https://openweathermap.org/img/wn/${iconCode}.png`}
+        alt="WeatherIcon" />
+      <p>Wind: {weather.wind.speed} m/s</p>
+    </div>
+  )
 }
 
+//Component that renders the searchbar
 const SearchBar = ({filter, changeHandler}) => {
   return(
     <div>
@@ -30,7 +31,8 @@ const SearchBar = ({filter, changeHandler}) => {
   )
 }
 
-const JustOneCountry = ({country}) => {
+//Component that renders one country
+const JustOneCountry = ({country, weather}) => {
   const langs = Object.values(country.languages)
     return (
       <>
@@ -42,17 +44,17 @@ const JustOneCountry = ({country}) => {
           {langs.map(lan=><li key={lan}>{lan}</li>)}
         </ul>
         <img src={country.flags.png} alt="Flag" />
-        <Weather country={country} />
+        <Weather capital={country.capital} weather={weather}/>
       </>
     )
 }
 
+//Component that renders the list of countries in case there's more than 1
 const ListOfCountries = ({list,buttonHandler}) =>{
-
   if(list.length > 10) 
     return <p>Too many matches, specify another filter</p>
 
-  else if(list.length > 1){
+  else 
     return(
       <ul>
         {list.map(country => 
@@ -63,17 +65,15 @@ const ListOfCountries = ({list,buttonHandler}) =>{
         )}
       </ul>
     )
-  }
-  else if (list.length === 1) {
-    return (<JustOneCountry country={list[0]}/>)
-  }
-  else return
 }
 
 const App = () => {
   const [allCountries, setAllCountries] = useState([])
   const [newFilter, setNewFilter] = useState('')
   const [newWeather, setNewWeather] = useState(null)
+  const [countryToShow, setNewCountry] = useState(null)
+
+  let justOne = false
 
   //Gets all countries and stores them in allCountries
   const getListFromServer = () => {
@@ -84,14 +84,39 @@ const App = () => {
     })
   }
 
+  //Gets weather info for a country
+  const getWeatherInfo = () =>{
+    if(countryToShow === null) return
+
+    const latlong = countryToShow.latlng
+    weatherService.getWeather(latlong[0],latlong[1])
+    .then(weather => {
+      setNewWeather(weather)
+      console.log('we got the weather!')
+    })
+  }
+
+
   //Returns a list with the filtered countries to show
   const getCountriesToShow = () =>{
-    if(newFilter === '') return allCountries
-    else return allCountries.filter(country =>{
-      const name = country.name.common
-      const strToCompare = name.substring(0,newFilter.length)
-      return strToCompare.toUpperCase() === newFilter.toUpperCase()
-    })
+    if(newFilter === ''){
+      if(countryToShow !== null) setNewCountry(null)
+      return allCountries
+    }
+    else{
+      const countriesToShow = allCountries.filter(country =>{
+        const name = country.name.common
+        const strToCompare = name.substring(0,newFilter.length)
+        return strToCompare.toUpperCase() === newFilter.toUpperCase()
+      })
+      if (countriesToShow.length === 1){
+        justOne = true
+        if(countryToShow === null) setNewCountry(countriesToShow[0])
+      }
+      else
+        if(countryToShow !== null) setNewCountry(null)
+      return countriesToShow
+    }
   }
 
   //Handles the search bar changes
@@ -106,11 +131,22 @@ const App = () => {
 
   //Calls for the first time to get all countries
   useEffect(getListFromServer,[])
+  useEffect(()=>getWeatherInfo(countryToShow),[countryToShow])
 
-  return (
+  const countryList = getCountriesToShow()
+  if(!justOne)
+  return(
     <>
       <SearchBar filter={newFilter} changeHandler={handleFilterChange} />
-      <ListOfCountries list={getCountriesToShow()} buttonHandler={handleShowCountry}/>
+      <ListOfCountries list={countryList} buttonHandler={handleShowCountry}/>
+    </>
+  )
+
+  else
+  return(
+    <>
+      <SearchBar filter={newFilter} changeHandler={handleFilterChange} />
+      <JustOneCountry country={countryToShow} weather={newWeather}/>
     </>
   )
 }
