@@ -22,14 +22,14 @@ const JustOneCountry = ({country}) => {
       Area: {country.area} </p>
       <h2>Languages</h2>
       <ul>
-        {langs.map(lan=><li>{lan}</li>)}
+        {langs.map(lan=><li key={lan}>{lan}</li>)}
       </ul>
       <img src={country.flags.png} alt="Flag" />
     </>
   )
 }
 
-const ListOfCountries = ({list}) =>{
+const ListOfCountries = ({list,buttonHandler}) =>{
 
   if(list.length > 10) 
     return <p>Too many matches, specify another filter</p>
@@ -40,6 +40,7 @@ const ListOfCountries = ({list}) =>{
         {list.map(country => 
           <li key={country.name.common}>
             {country.name.common}
+            <button onClick={()=>buttonHandler(country.name.common)}>show</button>
           </li>
         )}
       </ul>
@@ -64,10 +65,6 @@ const App = () => {
     })
   }
 
-  const handleFilterChange = (event) =>{
-    setNewFilter(event.target.value)
-  }
-
   //Returns a list with the filtered countries to show
   const getCountriesToShow = () =>{
     if(newFilter === '') return allCountries
@@ -78,13 +75,23 @@ const App = () => {
     })
   }
 
+  //Handles the search bar changes
+  const handleFilterChange = (event) =>{
+    setNewFilter(event.target.value)
+  }
+
+  //Handle for the show button
+  const handleShowPress = (countryName) => {
+    setNewFilter(countryName)
+  }
+
   //Calls for the first time to get all countries
   useEffect(getListFromServer,[])
 
   return (
     <>
       <SearchBar filter={newFilter} changeHandler={handleFilterChange} />
-      <ListOfCountries list={getCountriesToShow()}/>
+      <ListOfCountries list={getCountriesToShow()} buttonHandler={handleShowPress}/>
     </>
   )
 }
